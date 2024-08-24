@@ -93,6 +93,9 @@ foreach ($ipKeys as $key) {
     <title>Login</title>
 </head>
 <body>
+    <?php if (!empty($message)): ?>
+        <p><?= htmlspecialchars($message) ?></p>
+    <?php endif; ?>
     <form method="post">
         Username: <input type="text" name="login"><br>
         Password: <input type="password" name="password"><br>
