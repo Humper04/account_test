@@ -22,36 +22,81 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $email = $_POST['email'] ?? '';
     $phone = $_POST['phone'] ?? '';
     $password = $_POST['password'] ?? '';
+    $password_confirm = $_POST['password_confirm'] ?? '';
 
-    if (!empty($password)) {
-        $password = password_hash($password, PASSWORD_DEFAULT);
-    }
-
-    if (!isValidEmail($email) && !empty($email)) {
+    // Validate inputs
+    if (!empty($email) && !isValidEmail($email)) {
         $message = "Invalid email format. Please enter a valid email address.";
-    } else if (!isValidPhone($phone) && !empty($phone)) {
+    } elseif (!empty($phone) && !isValidPhone($phone)) {
         $message = "Invalid phone number format. Please enter a valid phone number.";
+    } elseif (!empty($password) && $password !== $password_confirm) {
+        $message = "Passwords do not match.";
     } else {
         $current_username = $_SESSION['username'];
-        $update_successful = updateUserInfo($current_username, $new_username, $email, $phone, $password);
+        
+        // Hash the password if provided
+        $hashed_password = !empty($password) ? password_hash($password, PASSWORD_DEFAULT) : null;
+
+        $update_successful = updateUserInfo($current_username, $new_username, $email, $phone, $hashed_password);
+        
         if ($update_successful) {
             $_SESSION['username'] = $new_username; // Update session username
             $message = 'Information updated successfully.';
         } else {
-            $message = 'Failed to update information or no changes were made.';
+            $message = 'No changes were made to your information.';
         }
     }
 }
 
-function updateUserInfo($current_username, $new_username, $email, $phone, $password) {
+function updateUserInfo($current_username, $new_username, $email, $phone, $hashed_password) {
     global $conn;
-    $sql = "UPDATE user_info SET username = ?, email = ?, phone = ?" . (!empty($password) ? ", password = ?" : "") . " WHERE username = ?";
-    $types = 'ss' . (!empty($password) ? 's' : '') . 's';
-    $params = [$new_username, $email, $phone];
-    if (!empty($password)) {
-        $params[] = $password;
+
+    // Retrieve current user information from the database
+    $sql = "SELECT username, email, phone, password FROM user_info WHERE username = ?";
+    $stmt = runQuery($sql, 's', [$current_username]);
+    $stmt->bind_result($current_username_db, $current_email, $current_phone, $current_password);
+    $stmt->fetch();
+    $stmt->close();
+
+    // Check for differences
+    $updates = [];
+    $params = [];
+    $types = '';
+
+    if (!empty($new_username) && $new_username !== $current_username_db) {
+        $updates[] = "username = ?";
+        $params[] = $new_username;
+        $types .= 's';
     }
+
+    if (!empty($email) && $email !== $current_email) {
+        $updates[] = "email = ?";
+        $params[] = $email;
+        $types .= 's';
+    }
+
+    if (!empty($phone) && $phone !== $current_phone) {
+        $updates[] = "phone = ?";
+        $params[] = $phone;
+        $types .= 's';
+    }
+
+    if (!empty($hashed_password) && !password_verify($hashed_password, $current_password)) {
+        $updates[] = "password = ?";
+        $params[] = $hashed_password;
+        $types .= 's';
+    }
+
+    // If no updates are needed, return false
+    if (empty($updates)) {
+        return false;
+    }
+
+    // Build update query dynamically
+    $sql = "UPDATE user_info SET " . implode(", ", $updates) . " WHERE username = ?";
     $params[] = $current_username;
+    $types .= 's';
+
     $stmt = runQuery($sql, $types, $params);
     return $stmt && $stmt->affected_rows > 0;
 }
@@ -62,6 +107,7 @@ function updateUserInfo($current_username, $new_username, $email, $phone, $passw
     Email: <input type="text" name="email"><br>
     Phone: <input type="text" name="phone"><br>
     Password: <input type="password" name="password"><br>
+    Confirm Password: <input type="password" name="password_confirm"><br>
     <input type="submit" value="Update Information">
 </form>
 <div><?= htmlspecialchars($message) ?></div>
