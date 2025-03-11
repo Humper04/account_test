@@ -28,7 +28,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 
     // Check login credentials
-    $stmt = runQuery("SELECT username, password FROM user_info WHERE username = ? OR email = ? OR phone = ?", "sss", [$login, $login, $login]);
+    $stmt = runQuery("SELECT username, password FROM user_info WHERE username = ? OR email = ? OR phone = ?", "sss", $login, $login, $login);
     $result = $stmt->get_result();
     if ($result->num_rows > 0) {
         $user = $result->fetch_assoc();
