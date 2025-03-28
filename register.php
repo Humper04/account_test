@@ -5,11 +5,11 @@ session_start();
 $message = '';
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $username = $_POST['username'] ?? '';
-    $password = $_POST['password'] ?? '';
-    $confirm_password = $_POST['confirm_password'] ?? '';
-    $email = $_POST['email'] ?? '';
-    $phone_number = $_POST['phone_number'] ?? '';
+    $username = trim($_POST['username'] ?? '');
+    $password = trim($_POST['password'] ?? '');
+    $confirm_password = trim($_POST['confirm_password'] ?? '');
+    $email = trim($_POST['email'] ?? '');
+    $phone_number = trim($_POST['phone_number'] ?? '');
 
     if ($password !== $confirm_password) {
         $message = "Passwords do not match.";
@@ -18,31 +18,26 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     } elseif (empty($email) && empty($phone_number)) {
         $message = "At least one contact method (email or phone) must be provided.";
     } else {
-        $query = "SELECT * FROM user_info WHERE username = ?";
-        $params = [$username];
-        $types = "s";
-
-        if (!empty($email)) {
-            $query .= " OR email = ?";
-            $params[] = $email;
-            $types .= "s";
-        }
-
-        if (!empty($phone_number)) {
-            $query .= " OR phone = ?";
-            $params[] = $phone_number;
-            $types .= "s";
-        }
-
-        $stmt = runQuery($query, $types, $params);
+        $stmt = runQuery(
+            "SELECT * FROM user_info WHERE username = ? OR email = ? OR phone = ?",
+            "sss",
+            [$username, $email, $phone_number]
+        );
 
         if ($stmt->get_result()->num_rows > 0) {
-            $message = "Username, email, and/or phone already in use.";
+            $message = "Username, email, or phone is already in use.";
         } else {
             $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-            $stmt = runQuery("INSERT INTO user_info (username, password, email, phone) VALUES (?, ?, ?, ?)", "ssss", [$username, $hashed_password, $email, $phone_number]);
-            if ($stmt->affected_rows > 0) {
-                header("Location: login.php");
+            $stmt = runQuery(
+                "INSERT INTO user_info (username, password, email, phone) VALUES (?, ?, ?, ?)",
+                "ssss",
+                [$username, $hashed_password, $email, $phone_number]
+            );
+
+            if ($stmt && $stmt->affected_rows > 0) {
+                $_SESSION['user_logged_in'] = true;
+                $_SESSION['username'] = $username;
+                header("Location: index.php");
                 exit();
             } else {
                 $message = "Registration failed. Please try again.";

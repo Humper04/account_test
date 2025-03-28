@@ -6,7 +6,7 @@ $dotenv = \Dotenv\Dotenv::createImmutable('/var/www/');
 $dotenv->load();
 
 $host = 'localhost';  // Server IP address or hostname
-$db = 'PPP4';         // Updated database name
+$db = 'login_system';         // Updated database name
 $user = 'root';
 $pass = $_ENV['DB_PASSWORD_ROOT'];
 $charset = 'utf8mb4';
@@ -34,36 +34,36 @@ if ($conn->connect_error) {
 
 $conn->set_charset($charset);
 
-function runQuery($sql, $types = null, ...$params) {
+function runQuery($sql, $types = null, $params = []) {
     global $conn;
 
-    // Check if at least one parameter is provided
-    if (empty($params)) {
-        error_log("Error: At least one parameter is required.");
+    // Ensure $params is an array
+    if (!is_array($params)) {
+        error_log("runQuery() error: Expected an array for parameters.");
         return false;
     }
 
     // Check if $types and $params match in length
     if ($types && strlen($types) !== count($params)) {
-        error_log("Parameter mismatch: Expected " . strlen($types) . " parameters, got " . count($params));
+        error_log("runQuery() error: Parameter count mismatch. Expected " . strlen($types) . ", got " . count($params));
         return false;
     }
 
     $stmt = $conn->prepare($sql);
     if (!$stmt) {
-        error_log("MySQL prepare error: " . $conn->error); // Log error to server's error log
+        error_log("runQuery() MySQL prepare error: " . $conn->error);
         return false;
     }
 
-    if ($types && $params) {
+    if ($types && !empty($params)) {
         if (!$stmt->bind_param($types, ...$params)) {
-            error_log("MySQL bind_param error: " . $stmt->error);
+            error_log("runQuery() MySQL bind_param error: " . $stmt->error);
             return false;
         }
     }
 
     if (!$stmt->execute()) {
-        error_log("MySQL execute error: " . $stmt->error);
+        error_log("runQuery() MySQL execute error: " . $stmt->error);
         return false;
     }
 
