@@ -18,50 +18,127 @@ function isValidPhone($phone) {
 }
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $new_username = trim($_POST['new_username'] ?? '');
-    $email = trim($_POST['email'] ?? '');
-    $phone = trim($_POST['phone'] ?? '');
-    $password = trim($_POST['password'] ?? '');
+    $new_username = $_POST['new_username'] ?? '';
+    $email = $_POST['email'] ?? '';
+    $phone = $_POST['phone'] ?? '';
+    $password = $_POST['password'] ?? '';
 
+    // Check that at least one field is non-empty
     if (empty($new_username) && empty($email) && empty($phone) && empty($password)) {
         $message = "Please fill in at least one field to update.";
     } else {
-        if (!empty($email) && !isValidEmail($email)) {
-            $message = "Invalid email format.";
-        } elseif (!empty($phone) && !isValidPhone($phone)) {
-            $message = "Invalid phone number format.";
+        if (!isValidEmail($email) && !empty($email)) {
+            $message = "Invalid email format. Please enter a valid email address.";
+        } else if (!isValidPhone($phone) && !empty($phone)) {
+            $message = "Invalid phone number format. Please enter a valid phone number.";
         } else {
+            // Hash password if provided
             if (!empty($password)) {
                 $password = password_hash($password, PASSWORD_DEFAULT);
             }
 
             $current_username = $_SESSION['username'];
-            $stmt = runQuery(
-                "UPDATE user_info SET username = COALESCE(NULLIF(?, ''), username), 
-                 email = COALESCE(NULLIF(?, ''), email), 
-                 phone = COALESCE(NULLIF(?, ''), phone), 
-                 password = COALESCE(NULLIF(?, ''), password) 
-                 WHERE username = ?",
-                "sssss",
-                [$new_username, $email, $phone, $password, $current_username]
-            );
-
-            if ($stmt && $stmt->affected_rows > 0) {
-                $_SESSION['username'] = !empty($new_username) ? $new_username : $_SESSION['username'];
-                $message = "Information updated successfully.";
+            $update_successful = updateUserInfo($current_username, $new_username, $email, $phone, $password);
+            if ($update_successful) {
+                $_SESSION['username'] = $new_username ?: $_SESSION['username']; // Update session username if changed
+                $message = 'Information updated successfully.';
             } else {
-                $message = "No changes were made.";
+                $message = 'No changes were made.';
             }
         }
     }
 }
+
+function updateUserInfo($current_username, $new_username, $email, $phone, $password) {
+    global $conn;
+
+    // Build SQL query and parameters dynamically based on non-empty fields
+    $sql = "UPDATE user_info SET ";
+    $types = '';
+    $params = [];
+
+    if (!empty($new_username)) {
+        $sql .= "username = ?, ";
+        $types .= 's';
+        $params[] = $new_username;
+    }
+    if (!empty($email)) {
+        $sql .= "email = ?, ";
+        $types .= 's';
+        $params[] = $email;
+    }
+    if (!empty($phone)) {
+        $sql .= "phone = ?, ";
+        $types .= 's';
+        $params[] = $phone;
+    }
+    if (!empty($password)) {
+        $sql .= "password = ?, ";
+        $types .= 's';
+        $params[] = $password;
+    }
+
+    // Remove trailing comma and add WHERE clause
+    $sql = rtrim($sql, ', ') . " WHERE username = ?";
+    $types .= 's';
+    $params[] = $current_username;
+
+    // Run query
+    $stmt = runQuery($sql, $types, ...$params);
+    return $stmt && $stmt->affected_rows > 0;
+}
+
 ?>
 
-<form method="post">
-    New Username: <input type="text" name="new_username" value="<?= htmlspecialchars($_SESSION['username']) ?>"><br>
-    Email: <input type="text" name="email"><br>
-    Phone: <input type="text" name="phone"><br>
-    Password: <input type="password" name="password"><br>
-    <input type="submit" value="Update Information">
-</form>
-<div><?= htmlspecialchars($message) ?></div>
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <title>Modify Information</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="modify_information.css">
+</head>
+<body>
+
+<div class="form-container">
+    <h1>Modify Information</h1>
+
+    <?php if (!empty($message)): ?>
+        <div class="message"><?= htmlspecialchars($message) ?></div>
+    <?php endif; ?>
+
+    <form method="post">
+        <div class="form-group">
+            <label for="new_username">New Username</label>
+            <input
+                type="text"
+                id="new_username"
+                name="new_username"
+                value="<?= htmlspecialchars($_SESSION['username']) ?>">
+        </div>
+
+        <div class="form-group">
+            <label for="email">Email</label>
+            <input type="text" id="email" name="email">
+        </div>
+
+        <div class="form-group">
+            <label for="phone">Phone</label>
+            <input type="text" id="phone" name="phone">
+        </div>
+
+        <div class="form-group">
+            <label for="password">New Password</label>
+            <input type="password" id="password" name="password">
+        </div>
+
+        <button type="submit" class="btn primary">Update Information</button>
+    </form>
+
+    <div class="links">
+        <a href="profile.php">← Back to Profile</a>
+    </div>
+</div>
+
+</body>
+</html>

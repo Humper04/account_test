@@ -5,11 +5,11 @@ session_start();
 $message = '';
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $username = trim($_POST['username'] ?? '');
-    $password = trim($_POST['password'] ?? '');
-    $confirm_password = trim($_POST['confirm_password'] ?? '');
-    $email = trim($_POST['email'] ?? '');
-    $phone_number = trim($_POST['phone_number'] ?? '');
+    $username = $_POST['username'] ?? '';
+    $password = $_POST['password'] ?? '';
+    $confirm_password = $_POST['confirm_password'] ?? '';
+    $email = $_POST['email'] ?? '';
+    $phone_number = $_POST['phone_number'] ?? '';
 
     if ($password !== $confirm_password) {
         $message = "Passwords do not match.";
@@ -18,25 +18,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     } elseif (empty($email) && empty($phone_number)) {
         $message = "At least one contact method (email or phone) must be provided.";
     } else {
-        $stmt = runQuery(
-            "SELECT * FROM user_info WHERE username = ? OR email = ? OR phone = ?",
-            "sss",
-            [$username, $email, $phone_number]
-        );
-
+        $stmt = runQuery("SELECT * FROM user_info WHERE username = ? OR email = ? OR phone = ?", "sss", $username, $email, $phone_number);
         if ($stmt->get_result()->num_rows > 0) {
-            $message = "Username, email, or phone is already in use.";
+            $message = "Username, email and / or phone already in use.";
         } else {
             $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-            $stmt = runQuery(
-                "INSERT INTO user_info (username, password, email, phone) VALUES (?, ?, ?, ?)",
-                "ssss",
-                [$username, $hashed_password, $email, $phone_number]
-            );
-
-            if ($stmt && $stmt->affected_rows > 0) {
+            $stmt = runQuery("INSERT INTO user_info (username, password, email, phone) VALUES (?, ?, ?, ?)", "ssss", $username, $hashed_password, $email, $phone_number);
+            if ($stmt->affected_rows > 0) {
                 $_SESSION['user_logged_in'] = true;
                 $_SESSION['username'] = $username;
+                $_SESSION['user_id'] = $stmt->insert_id;
                 header("Location: index.php");
                 exit();
             } else {
@@ -52,17 +43,52 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 <head>
     <meta charset="UTF-8">
     <title>Register</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="register.css">
 </head>
 <body>
-    <div><?= htmlspecialchars($message) ?></div>
+
+<div class="register-container">
+    <h1>Register</h1>
+
+    <?php if (!empty($message)): ?>
+        <div class="message"><?= htmlspecialchars($message) ?></div>
+    <?php endif; ?>
+
     <form method="post">
-        Username: <input type="text" name="username" required><br>
-        Password: <input type="password" name="password" required><br>
-        Confirm Password: <input type="password" name="confirm_password" required><br>
-        Email: <input type="text" name="email"><br>
-        Phone Number: <input type="text" name="phone_number"><br>
-        <input type="submit" value="Register">
+        <div class="form-group">
+            <label for="username">Username</label>
+            <input type="text" id="username" name="username" required>
+        </div>
+
+        <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" required>
+        </div>
+
+        <div class="form-group">
+            <label for="confirm_password">Confirm password</label>
+            <input type="password" id="confirm_password" name="confirm_password" required>
+        </div>
+
+        <div class="form-group">
+            <label for="email">Email</label>
+            <input type="text" id="email" name="email">
+        </div>
+
+        <div class="form-group">
+            <label for="phone_number">Phone number (optional)</label>
+            <input type="text" id="phone_number" name="phone_number">
+        </div>
+
+        <button type="submit" class="btn primary">Register</button>
     </form>
-    <p>Already have an account? <a href="login.php">Login here</a>.</p>
+
+    <div class="links">
+        <p>Already have an account?
+            <a href="login.php">Login here</a>
+        </p>
+    </div>
+</div>
 </body>
 </html>

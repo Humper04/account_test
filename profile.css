@@ -1,0 +1,91 @@
+:root {
+    --olive: #6b8e23;
+    --blue: #1e3a5f;
+    --yellow: #f4d35e;
+    --danger: #b00020;
+    --text-dark: #333;
+}
+
+* {
+    box-sizing: border-box;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    background: linear-gradient(135deg, var(--blue), var(--olive));
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 1rem;
+}
+
+.profile-container {
+    background: #fff;
+    width: 100%;
+    max-width: 480px;
+    padding: 2rem;
+    border-radius: 18px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+}
+
+h1 {
+    text-align: center;
+    color: var(--blue);
+    margin-bottom: 1.5rem;
+}
+
+.profile-info {
+    background: #f5f5f5;
+    padding: 1.5rem;
+    border-radius: 12px;
+    margin-bottom: 1.5rem;
+}
+
+.profile-info p {
+    margin: 0.7rem 0;
+    color: var(--text-dark);
+    font-size: 1rem;
+}
+
+.profile-info strong {
+    color: var(--blue);
+}
+
+.profile-links {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+    text-align: center;
+}
+
+.profile-links a {
+    color: var(--blue);
+    font-weight: 600;
+    text-decoration: none;
+    padding: 0.7rem;
+    border-radius: 8px;
+    background: #f5f5f5;
+    transition: background 0.3s ease;
+}
+
+.profile-links a:hover {
+    background: var(--yellow);
+    text-decoration: none;
+}
+
+.profile-links .logout {
+    color: var(--danger);
+}
+
+.profile-links .logout:hover {
+    background: #ffecec;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+    .profile-container {
+        padding: 1.5rem;
+    }
+}

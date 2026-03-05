@@ -33,15 +33,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 
     // Check login credentials
-    $stmt = runQuery("SELECT * FROM user_info WHERE username = ? OR email = ? OR phone = ?", "sss", [$login, $login, $login]);
+    $stmt = runQuery("SELECT id, username, password, role FROM user_info WHERE username = ? OR email = ? OR phone = ?", "sss", $login, $login, $login);
     $result = $stmt->get_result();
 
     if ($result->num_rows > 0) {
         $user = $result->fetch_assoc();
         if (password_verify($password, $user['password'])) {
-            // Store all user data in session
+            // Store user data in session
             $_SESSION['user_logged_in'] = true;
-            $_SESSION['user_data'] = $user;
+            $_SESSION['username'] = $user['username'];
+            $_SESSION['user_id'] = $user['id'];
+            $_SESSION['role'] = $user['role'];
 
             session_regenerate_id(true); // Security improvement
 
@@ -91,16 +93,36 @@ function getUserIP() {
 <head>
     <meta charset="UTF-8">
     <title>Login</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="login.css">
 </head>
 <body>
+
+<div class="login-container">
+    <h1>Login</h1>
+
     <?php if (!empty($message)): ?>
-        <p><?= htmlspecialchars($message) ?></p>
+        <div class="message"><?= htmlspecialchars($message) ?></div>
     <?php endif; ?>
+
     <form method="post">
-        Username/Email/Phone: <input type="text" name="login" required><br>
-        Password: <input type="password" name="password" required><br>
-        <input type="submit" value="Login">
+        <div class="form-group">
+            <label>Username / Email / Phone</label>
+            <input type="text" name="login" required>
+        </div>
+
+        <div class="form-group">
+            <label>Password</label>
+            <input type="password" name="password" required>
+        </div>
+
+        <button type="submit">Login</button>
     </form>
-    <p>Don't have an account? <a href="register.php">Register here</a>.</p>
+
+    <div class="links">
+        <p>Don't have an account? <a href="register.php">Register here</a></p>
+    </div>
+</div>
+
 </body>
 </html>

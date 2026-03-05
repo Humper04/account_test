@@ -34,38 +34,26 @@ if ($conn->connect_error) {
 
 $conn->set_charset($charset);
 
-function runQuery($sql, $types = null, $params = []) {
+function runQuery($sql, $types = null, ...$params) {
     global $conn;
-
-    // Ensure $params is an array
-    if (!is_array($params)) {
-        error_log("runQuery() error: Expected an array for parameters.");
-        return false;
-    }
-
-    // Check if $types and $params match in length
-    if ($types && strlen($types) !== count($params)) {
-        error_log("runQuery() error: Parameter count mismatch. Expected " . strlen($types) . ", got " . count($params));
-        return false;
-    }
 
     $stmt = $conn->prepare($sql);
     if (!$stmt) {
-        error_log("runQuery() MySQL prepare error: " . $conn->error);
+        error_log("MySQL prepare error: " . $conn->error);
         return false;
     }
 
     if ($types && !empty($params)) {
         if (!$stmt->bind_param($types, ...$params)) {
-            error_log("runQuery() MySQL bind_param error: " . $stmt->error);
+            error_log("MySQL bind_param error: " . $stmt->error);
             return false;
         }
     }
 
     if (!$stmt->execute()) {
-        error_log("runQuery() MySQL execute error: " . $stmt->error);
+        error_log("MySQL execute error: " . $stmt->error);
         return false;
     }
 
-    return $stmt;
+    return $stmt; // Return the statement object for further processing
 }
